@@ -10,14 +10,15 @@ version=1.0.0
 
 # STM compile variables
 # ----------------------
-compiler.extra_includes="-I{build.system.path}/{build.series}/CMSIS_Inc"
-#  "-I{build.core.path}/stm32" "-I{build.core.path}/usb" "-I{build.system.path}/CMSIS" "-I{build.system.path}/{build.series}/CMSIS_Inc" "-I{build.system.path}/{build.series}/CMSIS_Src" "-I{build.system.path}/{build.series}/HAL_Inc" "-I{build.system.path}/{build.series}/HAL_Src"  "-I{build.system.path}/{build.series}/stm32_chip" 
+compiler.extra_includes="-I{build.core.path}" "-I{build.core.path}/drivers" "-I{build.core.path}/hal" "-I{build.core.path}/platform" "-I{build.core.path}/targets/TARGET_STM" "-I{build.core.path}/targets/TARGET_STM/TARGET_STM32F0" "-I{build.core.path}/targets/TARGET_STM/TARGET_STM32F0/device" "-I{build.core.path}/cmsis/TARGET_CORTEX_M" "-I{build.core.path}/targets/TARGET_STM/TARGET_STM32F0/TARGET_NUCLEO_F030R8" "-I{build.core.path}/targets/TARGET_STM/TARGET_STM32F0/TARGET_NUCLEO_F030R8/device"
 
 compiler.warning_flags=-w
 compiler.warning_flags.none=-w
 compiler.warning_flags.default=
 compiler.warning_flags.more=-Wall
 compiler.warning_flags.all=-Wall -Wextra
+# add by @zhong
+compiler.common_warning_flags=-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 
 compiler.path={runtime.tools.arm-none-eabi-gcc.path}/bin/
 
@@ -28,13 +29,19 @@ compiler.ar.cmd=arm-none-eabi-ar
 compiler.c.elf.cmd=arm-none-eabi-gcc
 compiler.objcopy.cmd=arm-none-eabi-objcopy
 
-compiler.extra_flags=-mcpu={build.mcu} -DF_CPU={build.f_cpu} -mthumb -DSTM32GENERIC -DRAM_LENGTH={upload.maximum_data_size} -DFLASH_LENGTH={upload.maximum_size}
+#add by @zhong
+compiler.common_define=-D__CORTEX_M0 -DCMSIS_VECTAB_VIRTUAL -D__MBED_CMSIS_RTOS_CM -D__CMSIS_RTOS -DARM_MATH_CM0 -DTRANSACTION_QUEUE_SIZE_SPI=2 -DCMSIS_VECTAB_VIRTUAL_HEADER_FILE={build.cmsis_vectab_virtual_header_file} -DMBED_RTOS_SINGLE_THREAD 
+compiler.c_cpp_define=-D__MBED__=1 -DDEVICE_I2CSLAVE=1 -DTARGET_LIKE_MBED -DDEVICE_PORTOUT=1 -DDEVICE_PORTINOUT=1 -DTARGET_STM32F0 -DDEVICE_RTC=1 -DTARGET_NUCLEO_F030R8 -DTOOLCHAIN_GCC -DDEVICE_I2C_ASYNCH=1 -DTARGET_CORTEX_M -DTARGET_M0 -DMBED_BUILD_TIMESTAMP=1548521517.83 -DDEVICE_SERIAL=1 -DDEVICE_SPI_ASYNCH=1 -DDEVICE_INTERRUPTIN=1 -DTARGET_CORTEX -DDEVICE_I2C=1 -DDEVICE_STDIO_MESSAGES=1 -DTARGET_FF_MORPHO -DTARGET_FAMILY_STM32 -DTARGET_FF_ARDUINO -DTARGET_RELEASE -DTARGET_STM -DDEVICE_SERIAL_FC=1 -DDEVICE_PORTIN=1 -DDEVICE_SLEEP=1 -DTOOLCHAIN_GCC_ARM -DDEVICE_SPI=1 -DDEVICE_SPISLAVE=1 -DDEVICE_ANALOGIN=1 -DDEVICE_PWMOUT=1 -DTARGET_STM32F030R8 -DTARGET_LIKE_CORTEX_M0       
 
-compiler.S.flags={compiler.extra_flags} -c -g -x assembler-with-cpp
+compiler.common_extra_flags=-include mbed_config.h -c -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os -g1
 
-compiler.c.flags={compiler.extra_flags} -c -g -MMD -Os {compiler.warning_flags} -std=gnu11 -ffunction-sections -fdata-sections -nostdlib --param max-inline-insns-single=500 -Dprintf=iprintf -MMD
+compiler.extra_flags=-mcpu={build.mcu} -DF_CPU={build.f_cpu} -mthumb -DRAM_LENGTH={upload.maximum_data_size} -DFLASH_LENGTH={upload.maximum_size}
 
-compiler.cpp.flags={compiler.extra_flags} -c -g -Os {compiler.warning_flags} -std=gnu++11 -ffunction-sections -fdata-sections -nostdlib -fno-threadsafe-statics --param max-inline-insns-single=500 -fno-rtti -fno-exceptions -Dprintf=iprintf -MMD
+compiler.S.flags={compiler.common_define} {compiler.extra_includes} {compiler.extra_flags} {compiler.common_extra_flags} {compiler.common_warning_flags} -x assembler-with-cpp
+
+compiler.c.flags={compiler.common_define} {compiler.c_cpp_define} {compiler.extra_flags} {compiler.common_extra_flags} {compiler.common_warning_flags} -std=gnu99
+
+compiler.cpp.flags={compiler.common_define} {compiler.c_cpp_define} {compiler.extra_flags} {compiler.common_extra_flags} {compiler.common_warning_flags} -std=gnu++98 -fno-rtti -Wvla
 
 compiler.ar.flags=rcs
 
@@ -45,7 +52,7 @@ compiler.objcopy.eep.flags=-O ihex -j .eeprom --set-section-flags=.eeprom=alloc,
 compiler.elf2hex.flags=-O binary
 compiler.elf2hex.cmd=arm-none-eabi-objcopy
 
-compiler.ldflags=
+compiler.ldflags=-Wl,--gc-sections -Wl,--wrap,main -Wl,--wrap,_malloc_r -Wl,--wrap,_free_r -Wl,--wrap,_realloc_r -Wl,--wrap,_memalign_r -Wl,--wrap,_calloc_r -Wl,--wrap,exit -Wl,--wrap,atexit -Wl,-n --specs=nano.specs -mcpu=cortex-m0 -mthumb 
 compiler.size.cmd=arm-none-eabi-size
 compiler.define=-DARDUINO=
 
@@ -56,7 +63,7 @@ build.extra_flags_serial=
 build.extra_flags_serial_auto=
 build.extra_flags_jtag=
 build.extra_flags_menu={build.extra_flags_usb} {build.extra_flags_serial} {build.extra_flags_serial_auto} {build.extra_flags_jtag}
-build.ldscript=ldscript.ld
+build.ldscript=STM32F030X8.ld
 
 # These can be overridden in platform.local.txt
 compiler.c.extra_flags=
@@ -102,9 +109,7 @@ recipe.output.save_file={build.project_name}.{build.variant}.bin
 
 ## Compute size
 recipe.size.pattern="{compiler.path}{compiler.size.cmd}" -A "{build.path}/{build.project_name}.elf"
-recipe.size.regex=^(?:\.text|\.data|\.rodata|\.isr_vector)\s+([0-9]+).*
-recipe.size.regex.data=^(?:\.data|\.bss|\._user_heap_stack)\s+([0-9]+).*
-recipe.size.regex.eeprom=^(?:\.eeprom)\s+([0-9]+).*
+recipe.size.regex=\.text\s+([0-9]+).*
 
 
 # Uploader tool
