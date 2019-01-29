@@ -5,6 +5,7 @@
 extern "C"{
 #endif
 
+void software_init_hook(void);
 
 void setup(void);
 void loop(void);
